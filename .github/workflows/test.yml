@@ -1,0 +1,36 @@
+# Installs and tests the whole setup on fresh Windows and Mac machines: Handy, the models, the helpers, a spoken
+# sentence through the accurate pass, and (Windows) a real paste into Notepad started in one window, ended in another.
+name: test
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install (as a friend would, with install.ps1)
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File windows\install.ps1 -CI
+      - name: Test
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File windows\test.ps1
+      - name: Logs
+        if: always()
+        run: |
+          Get-ChildItem "$env:LOCALAPPDATA\dictation\logs" -ErrorAction SilentlyContinue | ForEach-Object { "== $($_.Name)"; Get-Content $_.FullName -Tail 40 }
+          "== handy.log"; Get-Content "$env:LOCALAPPDATA\com.pais.handy\logs\handy.log" -Tail 40 -ErrorAction SilentlyContinue
+  mac:
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test the router
+        run: zsh mac/build.sh test
+      - name: Install (as a friend would, with setup.sh; the smaller Whisper, as there is no GPU here)
+        run: DICTATION_WHISPER=turbo zsh mac/setup.sh --ci
+      - name: Test the installed helpers
+        run: zsh mac/test.sh "mac/build.noindex/Handy Router.app/Contents/MacOS/HandyRouter"
+      - name: Logs
+        if: always()
+        run: |
+          for f in ~/Library/Logs/handy-router.log ~/Library/Logs/handy-accurate.log ~/Library/Logs/handy-accurate.err ~/Library/Logs/handy-punctuate.log; do echo "== $f"; tail -40 "$f" 2>/dev/null; done

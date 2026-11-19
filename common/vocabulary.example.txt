@@ -1,0 +1,10 @@
+# Your vocabulary for the accurate pass: names, companies, products and jargon you say that speech models get wrong.
+# Most important first: Whisper keeps only what fits its prompt (about 65 terms), dropping from the end.
+# One term per line, spelled the way you want it written. Lines starting with # are ignored.
+# Installed to ~/Library/Application Support/handy-router/vocabulary.txt; edit that copy (read again at every piece).
+# Handy's custom words are added after these. Multi-word terms ("Claude Code") are also joined when a model splits them.
+Claude Code
+OpenAI
+GitHub
+OAuth
+pentest

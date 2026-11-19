@@ -1,0 +1,17 @@
+# Installed by install.ps1 into %LOCALAPPDATA%\dictation\venv together with ../common/accurate.py and punctuate.py.
+# gui-scripts: dictation-paste.exe and dictation-helper.exe run without a console window.
+[project]
+name = "dictation"
+version = "1.0.0"
+requires-python = ">=3.10"
+
+[project.gui-scripts]
+dictation-paste = "dictation_paste:run"
+dictation-helper = "dictation_helper:main"
+
+[tool.setuptools]
+py-modules = ["dictation_paste", "dictation_helper", "accurate", "punctuate"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
