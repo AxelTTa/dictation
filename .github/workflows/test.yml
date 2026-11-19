@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 jobs:
   windows:
-    runs-on: windows-2022
+    runs-on: windows-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +20,7 @@ jobs:
           Get-ChildItem "$env:LOCALAPPDATA\dictation\logs" -ErrorAction SilentlyContinue | ForEach-Object { "== $($_.Name)"; Get-Content $_.FullName -Tail 40 }
           "== handy.log"; Get-Content "$env:LOCALAPPDATA\com.pais.handy\logs\handy.log" -Tail 40 -ErrorAction SilentlyContinue
   mac:
-    runs-on: macos-14
+    runs-on: macos-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
