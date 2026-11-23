@@ -49,6 +49,7 @@ printf '%s\n' '[2026-11-09][10:00:00][handy_app_lib::audio_toolkit::audio::recor
 sleep 2.5
 check "reads how many mic channels Handy opened" 'grep -q "Handy reads 2 channel" $HANDY_ROUTER_LOG'
 check "says when a recording gave no text" 'grep -q "no text came out" $HANDY_ROUTER_LOG'
+check "a recording whose mic gave no sound at all is caught (earbuds that dropped out)" 'grep -q "mic gave no sound" $HANDY_ROUTER_LOG'
 quiet=$(grep -c "no text came out" "$HANDY_ROUTER_LOG")
 echo "$marker" >> "$HANDY_ROUTER_HANDY_LOG"; sleep 0.3
 echo "[2026-11-09][10:00:05][handy_app_lib::clipboard][INFO] Pasting via external script: x" >> "$HANDY_ROUTER_HANDY_LOG"

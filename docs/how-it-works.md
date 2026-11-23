@@ -61,6 +61,8 @@ Any piece that is missing, slow or unsure falls back to the step before. The wor
 
 ## Mac only
 
+- **Handy always running.** The watcher starts Handy whenever it has not been running for 10 s: after a restart of the Mac it did not always come back on its own, and Fn did nothing.
+- **A mic that goes silent.** Earbuds can drop out while still plugged in. Handy Mics then gives no sound at all and every dictation comes out empty. The first such dictation plays a low "Funk", puts Handy Mics on the Mac's own mic and restarts Handy; the earbuds come back when a mic is plugged in or out.
 - **Fn listener self-repair.** macOS switches off an event tap that stalls (after a night asleep, for example), and Handy never turns it back on, so Fn did nothing. Every 2 s the watcher checks Handy's tap and restarts Handy between dictations if it is off.
 - **"Handy Mics".**
   - **What it is.** The watcher keeps one CoreAudio device holding every real microphone: the Mac's own, plus earbuds, USB or Bluetooth mics while they are connected. Handy records from it, so a far earbud mic no longer makes Handy hear "no speech".

@@ -159,10 +159,14 @@ let quietGrace = env["HANDY_ROUTER_QUIET_GRACE"].flatMap(Double.init)
 final class Recordings {
     private var began: Date?
     private var stopped: Date?
+    /// Whether macOS ever showed Handy recording during this recording. Never: its mic gave no sound at all.
+    private var heard = false
     private var finished = Date.distantPast
     private var timer: Timer?
     /// Called once when Handy's mic closes (the accurate-pass capture stops there).
     var micClosed: () -> Void = {}
+    /// Called when a recording ended with no text and Handy's mic never ran: a mic in Handy Mics stopped giving sound.
+    var micDead: () -> Void = {}
     /// The router can take up to 6 s after Handy hands it the text.
     var busy: Bool { began != nil || Date().timeIntervalSince(finished) < 7 }
 
@@ -171,9 +175,11 @@ final class Recordings {
         // (Nov 14: three taps in a row each recorded ~1 s, read by Handy as holds, and only the last was logged).
         if let previous = began, let closed = stopped {
             log("no text came out of a \(Int(closed.timeIntervalSince(previous).rounded()))s recording (Handy heard no speech)")
+            if !heard { micDead() }
         }
         began = Date()
         stopped = nil
+        heard = false
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in self?.tick() }
     }
@@ -219,14 +225,14 @@ final class Recordings {
 
     private func update(recording: Bool) {
         guard let began else { return }
-        if recording { stopped = nil; return }
+        if recording { stopped = nil; heard = true; return }
         if stopped == nil { micClosed() }
         let stop = stopped ?? Date()
         stopped = stop
         let length = stop.timeIntervalSince(began)
         guard Date().timeIntervalSince(stop) > quietGrace ?? (15 + length / 10) else { return }
         log("no text came out of a \(Int(length.rounded()))s recording (Handy heard no speech)")
-        if length >= 1.5 { sound("Funk") }
+        if !heard { micDead() } else if length >= 1.5 { sound("Funk") }
         finish()
     }
 }
@@ -255,6 +261,19 @@ func runWatch() -> Never {
     let recordings = Recordings()
     let capture = Capture()
     recordings.micClosed = { capture.stop() }
+    // Nov 23: earbuds dropped out mid-day while still plugged in. Handy Mics then gave no sound at all, nothing changed in
+    // the device list, and every dictation came out empty until the Mac was restarted. Now the first such recording
+    // puts Handy Mics on the Mac's own mic (the earbuds come back when a mic is plugged in or out) and restarts Handy.
+    recordings.micDead = {
+        sound("Funk")
+        guard env["HANDY_ROUTER_HANDY_LOG"] == nil else { log("Handy's mic gave no sound (test: nothing repaired)"); return }
+        audioQueue.async {
+            let mics = syncMics(macOnly: true)
+            DispatchQueue.main.async {
+                restartHandy("Handy's mic gave no sound at all (a mic in \(micsName) stopped working); \(mics); restarted Handy")
+            }
+        }
+    }
     let channels = ChannelReader()
     // What the running Handy logged since its launch (the channel count it settled on).
     if let old = try? String(contentsOfFile: handyLogPath, encoding: .utf8) {

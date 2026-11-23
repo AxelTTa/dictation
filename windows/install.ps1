@@ -79,8 +79,10 @@ function Get-File($url, $dest, $sha) {
 function Find-Handy {
   $keys = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*", "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*"
   foreach ($k in Get-ItemProperty $keys -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq "Handy" }) {
-    foreach ($dir in @($k.InstallLocation, (Split-Path ("$($k.DisplayIcon)" -replace '"|,\d+$', '') -ErrorAction SilentlyContinue))) {
-      if ($dir) { foreach ($n in "handy.exe", "Handy.exe") { if (Test-Path (Join-Path $dir $n)) { return (Join-Path $dir $n) } } }
+    # The installer writes these with quotes around them ("C:\...").
+    $icon = "$($k.DisplayIcon)" -replace '"', '' -replace ',\d+$', ''
+    foreach ($dir in @("$($k.InstallLocation)".Trim('"', ' '), $(if ($icon) { Split-Path $icon -ErrorAction SilentlyContinue }))) {
+      if ($dir) { foreach ($n in "handy.exe", "Handy.exe") { if (Test-Path -LiteralPath (Join-Path $dir $n)) { return (Join-Path $dir $n) } } }
     }
   }
   foreach ($dir in "$env:LOCALAPPDATA\Handy", "$env:ProgramFiles\Handy", "$env:LOCALAPPDATA\Programs\Handy") {

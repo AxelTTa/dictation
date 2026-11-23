@@ -129,9 +129,11 @@ func setRate(_ device: AudioObjectID) {
 }
 
 /// Creates the combined mic, or rewrites its members in place (never deleting it: Handy forgets a mic that disappears).
+/// `macOnly`: the Mac's own mic alone, after a mic in it stopped giving sound (until the mics change again).
 @discardableResult
-func syncMics() -> String {
-    let mics = realMics()
+func syncMics(macOnly: Bool = false) -> String {
+    var mics = realMics()
+    if macOnly, let mac = mics.first(where: \.builtIn) { mics = [mac] }
     guard let main = mics.first else { return "no microphones" }
     let entries = micEntries(mics)
     let names = mics.map(\.name).joined(separator: " + ")
@@ -427,6 +429,11 @@ func rewriteHandySettings(_ change: (inout [String: Any]) -> Void) {
             try? out.write(to: URL(fileURLWithPath: handySettingsPath), options: .atomic)
         }
     }
+    openHandy()
+}
+
+/// Opens Handy in the background and waits (up to 5 s) for macOS to say it has.
+func openHandy() {
     let config = NSWorkspace.OpenConfiguration()
     config.activates = false
     // Handy inherits the caller's environment; blank this router's own variables so its pastes stay pastes.
@@ -496,7 +503,9 @@ func restartHandy(_ why: String, change: (inout [String: Any]) -> Void = { _ in 
     log(why)
 }
 
-/// Checks Handy every 2 s and restarts it only between dictations (`busy` covers recording, transcribing and the paste):
+/// Checks Handy every 2 s. Starts it when it has not been running for 10 s: after a restart of the Mac it did not always come
+/// back on its own, and Fn did nothing (Nov 23). Restarts it only between dictations (`busy` covers recording,
+/// transcribing and the paste):
 /// - its Fn listener is off (macOS switches off an event tap that stalls and Handy never turns it back on): right away;
 /// - it reads the wrong number of mic channels after earbuds came or went: once nobody has touched the keyboard or
 ///   mouse for 15 s, so the restart (about 2 s) does not swallow the next Fn press;
@@ -505,10 +514,22 @@ func restartHandy(_ why: String, change: (inout [String: Any]) -> Void = { _ in 
 func keepHandyHealthy(busy: @escaping () -> Bool) {
     var ticks = 0
     var checking = false
+    var missing = 0
     Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { _ in
         ticks += 1
         let handy = handyPIDs()
-        guard !checking, !handy.isEmpty, Date().timeIntervalSince(lastRestart) > 60, !busy() else { return }
+        if handy.isEmpty {
+            missing += 1
+            guard missing >= 5, Date().timeIntervalSince(lastRestart) > 20 else { return }  // 10 s: never mid settings edit
+            missing = 0
+            lastRestart = Date()
+            openHandy()
+            handyChannels = nil
+            log("Handy was not running; started it")
+            return
+        }
+        missing = 0
+        guard !checking, Date().timeIntervalSince(lastRestart) > 60, !busy() else { return }
         checking = true
         let heard = handyChannels
         let checkMic = ticks % 15 == 0
