@@ -69,7 +69,9 @@ $env:HANDY_ACCURATE_WAIT = "90"
 $env:DICTATION_HELPER_WAIT = "100"
 
 $t0 = Get-Date
+$ErrorActionPreference = "Continue"   # Windows PowerShell turns a program's notes on stderr into errors when they are redirected
 $out = & $Py -I (Join-Path $Root "app\accurate.py") --file $wav $heard 2>$null
+$ErrorActionPreference = "Stop"
 Check "accurate pass on spoken audio, your words spelled right" ("$out" -match '"used": "accurate"' -and "$out" -match "YellowForce dashboard") "($out, $([int]((Get-Date) - $t0).TotalSeconds)s)"
 
 $out = & $Py -I (Join-Path $Root "app\punctuate.py") --text "so i tried it twice and it still did not work then i restarted the computer and now it works fine with Claude"
