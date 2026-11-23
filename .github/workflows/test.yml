@@ -20,6 +20,7 @@ jobs:
           Get-ChildItem "$env:LOCALAPPDATA\dictation\logs" -ErrorAction SilentlyContinue | ForEach-Object { "== $($_.Name)"; Get-Content $_.FullName -Tail 40 }
           "== handy.log"; Get-Content "$env:LOCALAPPDATA\com.pais.handy\logs\handy.log" -Tail 40 -ErrorAction SilentlyContinue
   mac:
+    if: vars.SKIP_MAC != '1'   # a copy that only needs the Windows check can skip the Mac machine
     runs-on: macos-latest
     timeout-minutes: 45
     steps:
