@@ -9,7 +9,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install (as a friend would, with install.ps1)
         run: powershell -NoProfile -ExecutionPolicy Bypass -File windows\install.ps1 -CI
       - name: Test
@@ -24,7 +24,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build and test the router
         run: zsh mac/build.sh test
       - name: Install (as a friend would, with setup.sh; the smaller Whisper, as there is no GPU here)

@@ -70,7 +70,7 @@ Removing keeps Handy and your word list. The logs hold counts and timings, never
 ## Status
 
 - **Mac:** used every day since November 2026, with tests (`zsh mac/build.sh test`).
-- **Windows:** new. Its install and test (`windows\test.ps1`) are written but have not yet run on a real Windows PC. Tell Axel what breaks.
+- **Windows:** new. The install and the full test (`windows\test.ps1`: a spoken sentence through the accurate pass, started in one Notepad and pasted back into it from another) pass on GitHub's Windows machine. Not yet used day to day on a real PC with a mic: tell Axel what breaks.
 - **Handy version:** both setups pin Handy 0.9.8 and turn off its update check, because the helpers read its log.
 
 How it works, and why each piece is there: [docs/how-it-works.md](docs/how-it-works.md).
