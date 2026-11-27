@@ -34,6 +34,7 @@ Any piece that is missing, slow or unsure falls back to the step before. The wor
   - the two mostly agree, with no gap and no made-up ending;
   - any opening words it missed (up to 3) are put back;
   - closing words Handy never heard (up to 6) are dropped;
+  - Whisper's stock lines from video subtitles ("Thank you for watching", "Please subscribe", "Merci d'avoir regardé") are removed wherever they appear, unless Handy heard the same words; and Whisper only hears half a second after your last sound, since a silent end is where it makes them up;
   - a piece that loops is retried, then given up.
 - **When Handy's text goes out instead.** The accurate pass has 2 s to answer. If it is too slow or anything looks off, Handy's text goes out. A Windows PC that cannot transcribe 8 s of audio in 2.5 s (no usable graphics card) turns the accurate pass off at start.
 

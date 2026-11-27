@@ -137,6 +137,9 @@ print(json.dumps([
   a.choose("make sure it works today. Thank you.", "make sure it works today", "en")[0],
   a.fix_custom_words("use the Yellow Force CRM and post gres, figure out the rest"),
   a.looped("from from from from here"), a.looped("I said no, no, no to that"),
+  a.drop_made_up("Send it to Priya today. Thank you for watching!", "send it to priya today"),
+  a.drop_made_up("First part done. Thanks for watching. Second part starts now", "first part done second part starts now"),
+  a.drop_made_up("I told them thank you for watching the kids.", "i told them thank you for watching the kids"),
 ]))
 PY
 )
@@ -145,7 +148,9 @@ PY
   check "accurate pass puts back opening words it missed" '[[ $out == *"\"Okay so system seems to be fine today.\""* ]]'
   check "accurate pass drops a made-up closing phrase" '[[ $out == *"\"make sure it works today.\""* ]]'
   check "custom words joined exactly, never fuzzily" '[[ $out == *"use the YellowForce CRM and Postgres, figure out the rest"* ]]'
-  check "a looping piece is caught, a short repeat is not" '[[ $out == *"true, false]" ]]'
+  check "a looping piece is caught, a short repeat is not" '[[ $out == *"true, false, ["* ]]'
+  check "\"Thank you for watching\" Handy never heard is dropped, at the end or mid-text" '[[ $out == *"[\"Send it to Priya today.\", 1]"* && $out == *"[\"First part done. Second part starts now\", 1]"* ]]'
+  check "the same words are kept when you said them" '[[ $out == *"[\"I told them thank you for watching the kids.\", 0]"* ]]'
   if [[ -f "$HOME/Library/Application Support/com.pais.handy/models/ggml-large-v3-q5_0.bin" || -n $(ls "$support"/models/whisper-large-v3*.gguf 2>/dev/null) ]]; then
     say -o "$tmp/say.aiff" "Ask Priya to update the YellowForce dashboard before Friday afternoon, and check every number twice." && \
       afconvert -f WAVE -d LEI16@16000 -c 1 "$tmp/say.aiff" "$tmp/say.wav"

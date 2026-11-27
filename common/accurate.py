@@ -54,6 +54,7 @@ MAX_PIECE = 28 * 50         # frames: models read 30 s at a time; cut at the qui
 PAUSE = 15                  # frames (300 ms) quieter than speech
 QUIET_DB = 8                # a frame within 8 dB of the noise floor is quiet
 SPEECH_DB = 12              # a piece whose loudest 20 ms is not 12 dB over the floor has no speech
+TAIL_KEEP = 25              # frames (0.5 s) kept after the last sound in a piece; longer silence makes Whisper invent endings
 SETTLE = 0.12               # s: audio still on its way when the router asks
 WAIT = float(os.environ.get("HANDY_ACCURATE_WAIT", 1.8))  # s: the paste step gives up at 2 (tests on slow machines: more)
 MAX_AGE = 20 * 60           # s: a recording older than this is never served
@@ -185,6 +186,10 @@ class Helper:
         floor = np.percentile(np.array(rec.db), 10)
         if not db or max(db) < floor + SPEECH_DB:  # no speech in it: Whisper would make some up
             return
+        # Silence at the end of a piece (after the last word, before Fn) is where Whisper makes up "Thank you for
+        # watching." (Nov 27): it only hears up to half a second after the last sound.
+        last = max(i for i, d in enumerate(db) if d >= floor + QUIET_DB)
+        f1 = min(f1, f0 + last + 1 + TAIL_KEEP)
         rec.pieces += 1
         self.jobs.put((rec, rec.pieces - 1, rec.samples(f0, f1)))
 
@@ -239,7 +244,10 @@ class Helper:
         if len(rec.texts) < rec.pieces or any(rec.texts[i] is None for i in rec.texts):
             return {"text": "", "used": "handy", "why": "accurate pass not done in time", **info}
         found = fix_custom_words(" ".join(rec.texts[i] for i in sorted(rec.texts) if rec.texts[i]))
+        found, dropped = drop_made_up(found, handy)
         text, used, why = choose(found, handy, rec.language)
+        if dropped:
+            why += f", dropped {dropped} made-up phrase(s)"
         return {"text": text, "used": used, "why": why, "language": rec.language, **info}
 
     # --- socket -------------------------------------------------------------------------------------------------
@@ -329,6 +337,47 @@ def looped(text):
             if words[i:i + size] * 4 == words[i:i + 4 * size]:
                 return True
     return False
+
+
+# What Whisper writes over silence, learned from video subtitles. Removed wherever it shows up (the end of any piece,
+# so also mid-text) unless Handy's own text has the same words, which means you said them.
+MADE_UP = [
+    "thank you so much for watching", "thank you very much for watching", "thank you for watching", "thanks for watching",
+    "thank you for listening", "thanks for listening", "don't forget to like and subscribe", "please like and subscribe",
+    "like and subscribe", "please subscribe", "subscribe to my channel", "see you in the next video", "see you next time",
+    "subtitles by the amara.org community", "merci d'avoir regardé cette vidéo", "merci d'avoir regardé",
+    "sous-titres réalisés par la communauté d'amara.org", "abonnez-vous",
+]
+
+
+def _bare(word):
+    return re.sub(r"[^\w'.-]", "", word.lower().replace("’", "'")).strip(".-")
+
+
+def drop_made_up(found, handy):
+    """Takes Whisper's stock phrases out of its text when Handy did not hear them. Returns (text, how many dropped)."""
+    words = found.split()
+    heard = " " + " ".join(_bare(w) for w in handy.split()) + " "
+    dropped = 0
+    for phrase in MADE_UP:
+        size = len(phrase.split())
+        if " " + phrase + " " in heard:
+            continue
+        i = 0
+        while i <= len(words) - size:
+            if " ".join(_bare(w) for w in words[i:i + size]) == phrase:
+                end = i + size
+                while end < len(words) and not re.search(r"\w", words[end]):  # French spacing: "regardé !"
+                    end += 1
+                ending = re.search(r"[.?!]+[\"”’)]*$", words[end - 1])
+                del words[i:end]
+                dropped += 1
+                # The word before now ends the sentence the phrase ended.
+                if ending and i > 0 and not re.search(r"[.?!][\"”’)]*$", words[i - 1]):
+                    words[i - 1] = words[i - 1].rstrip(",;:") + ending.group()
+            else:
+                i += 1
+    return " ".join(words), dropped
 
 
 def tokens(text):
